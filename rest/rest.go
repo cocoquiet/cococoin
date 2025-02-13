@@ -10,7 +10,7 @@ import (
 	"github.com/cocoquiet/cococoin/utils"
 )
 
-const port string = ":4000"
+var port string
 
 type url string
 
@@ -39,9 +39,19 @@ func documentation(rw http.ResponseWriter, r *http.Request) {
 		},
 		{
 			URL:         url("/blocks"),
+			Method:      "GET",
+			Description: "See All Blocks",
+		},
+		{
+			URL:         url("/blocks"),
 			Method:      "POST",
 			Description: "Add A Block",
 			Payload:     "data:string",
+		},
+		{
+			URL:         url("/blocks/{id}"),
+			Method:      "GET",
+			Description: "See A Block",
 		},
 	}
 
@@ -62,9 +72,13 @@ func blocks(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Start() {
-	http.HandleFunc("/", documentation)
-	http.HandleFunc("/blocks", blocks)
+func Start(aPort int) {
+	handler := http.NewServeMux()
+	port = fmt.Sprintf(":%d", aPort)
+
+	handler.HandleFunc("/", documentation)
+	handler.HandleFunc("/blocks", blocks)
+
 	fmt.Printf("Listening on http://localhost%s\n", port)
-	log.Fatal(http.ListenAndServe(port, nil))
+	log.Fatal(http.ListenAndServe(port, handler))
 }

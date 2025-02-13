@@ -1,7 +1,11 @@
 package main
 
-import "github.com/cocoquiet/cococoin/rest"
+import (
+	"github.com/cocoquiet/cococoin/explorer"
+	"github.com/cocoquiet/cococoin/rest"
+)
 
 func main() {
-	rest.Start()
+	go explorer.Start(8000)
+	rest.Start(4000)
 }
