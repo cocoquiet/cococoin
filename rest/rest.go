@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/cocoquiet/cococoin/blockchain"
 	"github.com/cocoquiet/cococoin/utils"
+	"github.com/gorilla/mux"
 )
 
 var port string
@@ -30,6 +32,10 @@ type addBlockBody struct {
 	Message string
 }
 
+type errorResponse struct {
+	ErrorMessage string `json:"errorMessage"`
+}
+
 func documentation(rw http.ResponseWriter, r *http.Request) {
 	data := []urlDescription{
 		{
@@ -49,7 +55,7 @@ func documentation(rw http.ResponseWriter, r *http.Request) {
 			Payload:     "data:string",
 		},
 		{
-			URL:         url("/blocks/{id}"),
+			URL:         url("/blocks/{height}"),
 			Method:      "GET",
 			Description: "See A Block",
 		},
@@ -72,13 +78,29 @@ func blocks(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func block(rw http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id, err := strconv.Atoi(vars["height"])
+	utils.HandleErr(err)
+
+	block, err := blockchain.GetBlockChain().GetBlock(id)
+	encoder := json.NewEncoder(rw)
+
+	if err == blockchain.ErrNotFound {
+		encoder.Encode(errorResponse{fmt.Sprint(err)})
+	} else {
+		encoder.Encode(block)
+	}
+}
+
 func Start(aPort int) {
-	handler := http.NewServeMux()
+	router := mux.NewRouter()
 	port = fmt.Sprintf(":%d", aPort)
 
-	handler.HandleFunc("/", documentation)
-	handler.HandleFunc("/blocks", blocks)
+	router.HandleFunc("/", documentation).Methods("GET")
+	router.HandleFunc("/blocks", blocks).Methods("GET", "POST")
+	router.HandleFunc("/blocks/{height:[0-9]+}", block).Methods("GET")
 
 	fmt.Printf("Listening on http://localhost%s\n", port)
-	log.Fatal(http.ListenAndServe(port, handler))
+	log.Fatal(http.ListenAndServe(port, router))
 }
