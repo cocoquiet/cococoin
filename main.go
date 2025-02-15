@@ -1,9 +1,7 @@
 package main
 
-import (
-	"github.com/cocoquiet/cococoin/rest"
-)
+import "github.com/cocoquiet/cococoin/cli"
 
 func main() {
-	rest.Start(4000)
+	cli.Start()
 }
