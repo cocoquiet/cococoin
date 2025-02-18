@@ -1,7 +1,7 @@
 package main
 
-import "github.com/cocoquiet/cococoin/cli"
+import "github.com/cocoquiet/cococoin/blockchain"
 
 func main() {
-	cli.Start()
+	blockchain.BlockChain()
 }
