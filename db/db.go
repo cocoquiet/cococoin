@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	dbName       = "blockcahin.db"
+	dbName       = "blockchain.db"
 	dataBucket   = "data"
 	blocksBucket = "blocks"
 )
@@ -49,7 +49,7 @@ func SaveBlock(hash string, data []byte) {
 func SaveBlockchain(data []byte) {
 	err := DB().Update(func(tx *bolt.Tx) error {
 		bucket := tx.Bucket([]byte(dataBucket))
-		err := bucket.Put([]byte("checkpint"), data)
+		err := bucket.Put([]byte("checkpoint"), data)
 		return err
 	})
 	utils.HandleErr(err)
