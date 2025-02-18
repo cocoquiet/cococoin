@@ -3,7 +3,7 @@ package cli
 import (
 	"flag"
 	"fmt"
-	"os"
+	"runtime"
 
 	"github.com/cocoquiet/cococoin/explorer"
 	"github.com/cocoquiet/cococoin/rest"
@@ -15,7 +15,7 @@ func usage() {
 	fmt.Printf("-port:		Set port of the server\n")
 	fmt.Printf("-mode:		Choose between 'html' and 'rest'\n\n")
 
-	os.Exit(0)
+	runtime.Goexit()
 }
 
 func Start() {

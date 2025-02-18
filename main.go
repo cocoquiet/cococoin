@@ -1,9 +1,12 @@
 package main
 
-import "github.com/cocoquiet/cococoin/blockchain"
+import (
+	"github.com/cocoquiet/cococoin/cli"
+	"github.com/cocoquiet/cococoin/db"
+)
 
 func main() {
-	blockchain.BlockChain().AddBlock("First")
-	blockchain.BlockChain().AddBlock("Second")
-	blockchain.BlockChain().AddBlock("Third")
+	defer db.Close()
+
+	cli.Start()
 }
