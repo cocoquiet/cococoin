@@ -7,9 +7,17 @@ import (
 	"github.com/cocoquiet/cococoin/utils"
 )
 
+const (
+	defaultDifficulty  int = 2
+	difficultyInterval int = 5
+	blockInterval      int = 2
+	allowedRange       int = 2
+)
+
 type blockchain struct {
-	NewestHash string `json:"newestHash"`
-	Height     int    `json:"height"`
+	NewestHash        string `json:"newestHash"`
+	Height            int    `json:"height"`
+	CurrentDifficulty int    `json:"currentDifficulty"`
 }
 
 var b *blockchain
@@ -28,6 +36,7 @@ func (b *blockchain) AddBlock(data string) {
 
 	b.NewestHash = block.Hash
 	b.Height = block.Height
+	b.CurrentDifficulty = block.Difficulty
 
 	b.persist()
 }
@@ -50,10 +59,38 @@ func (b *blockchain) Blocks() []*Block {
 	return blocks
 }
 
+func (b *blockchain) recalculateDifficulty() int {
+	allblocks := b.Blocks()
+	newestBlock := allblocks[0]
+	lastRecalculatedBlock := allblocks[difficultyInterval-1]
+
+	actualTime := (newestBlock.Timestamp - lastRecalculatedBlock.Timestamp) / 60
+	expectedTime := difficultyInterval * blockInterval
+
+	if actualTime < expectedTime-allowedRange {
+		return b.CurrentDifficulty + 1
+	} else if actualTime > expectedTime+allowedRange {
+		return b.CurrentDifficulty - 1
+	}
+	return b.CurrentDifficulty
+}
+
+func (b *blockchain) difficulty() int {
+	if b.Height == 0 {
+		return defaultDifficulty
+	} else if b.Height%difficultyInterval == 0 {
+		return b.recalculateDifficulty()
+	} else {
+		return b.CurrentDifficulty
+	}
+}
+
 func BlockChain() *blockchain {
 	if b == nil {
 		once.Do(func() {
-			b = &blockchain{"", 0}
+			b = &blockchain{
+				Height: 0,
+			}
 
 			checkpoint := db.Checkpoint()
 			if checkpoint == nil {
