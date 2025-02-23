@@ -18,19 +18,20 @@ type mempool struct {
 var Mempool *mempool = &mempool{}
 
 type Tx struct {
-	Id        string   `json:"id"`
+	ID        string   `json:"id"`
 	Timestamp int      `json:"timestamp"`
 	TxIns     []*TxIn  `json:"txIns"`
 	TxOuts    []*TxOut `json:"txOuts"`
 }
 
 func (t *Tx) getId() {
-	t.Id = utils.Hash(t)
+	t.ID = utils.Hash(t)
 }
 
 type TxIn struct {
-	Owner  string `json:"owner"`
-	Amount int    `json:"amount"`
+	TxID  string `json:"txId"`
+	Index int    `json:"index"`
+	Owner string `json:"owner"`
 }
 
 type TxOut struct {
@@ -38,16 +39,34 @@ type TxOut struct {
 	Amount int    `json:"amount"`
 }
 
+type UTxOut struct {
+	TxID   string
+	Index  int
+	Amount int
+}
+
+func isOnMempool(uTxOut *UTxOut) bool {
+	exists := false
+
+	for _, tx := range Mempool.Txs {
+		for _, input := range tx.TxIns {
+			exists = input.TxID == uTxOut.TxID && input.Index == uTxOut.Index
+		}
+	}
+
+	return exists
+}
+
 func makeCoinbaseTx(address string) *Tx {
 	txIns := []*TxIn{
-		{"COINBASE", minerReward},
+		{"", -1, "COINBASE"},
 	}
 	txOuts := []*TxOut{
 		{address, minerReward},
 	}
 
 	tx := Tx{
-		Id:        "",
+		ID:        "",
 		Timestamp: int(time.Now().Unix()),
 		TxIns:     txIns,
 		TxOuts:    txOuts,
@@ -59,33 +78,34 @@ func makeCoinbaseTx(address string) *Tx {
 
 func makeTx(from, to string, amount int) (*Tx, error) {
 	if BlockChain().BalanceByAddress(from) < amount {
-		return nil, errors.New("not enough money")
+		return nil, errors.New("not enough fund")
 	}
 
-	var txIns []*TxIn
 	var txOuts []*TxOut
+	var txIns []*TxIn
 
 	total := 0
-	oldTxOuts := BlockChain().TxOutsByAddress(from)
-	for _, txOut := range oldTxOuts {
-		if total > amount {
+	uTxOuts := BlockChain().UTxOutsByAddress(from)
+	for _, uTxOut := range uTxOuts {
+		if total >= amount {
 			break
 		}
-		txIn := &TxIn{txOut.Owner, txOut.Amount}
+
+		txIn := &TxIn{uTxOut.TxID, uTxOut.Index, from}
 		txIns = append(txIns, txIn)
-		total += txOut.Amount
+		total += uTxOut.Amount
 	}
 
-	change := total - amount
-	if change != 0 {
+	if change := total - amount; change != 0 {
 		changeTxOut := &TxOut{from, change}
 		txOuts = append(txOuts, changeTxOut)
 	}
+
 	txOut := &TxOut{to, amount}
 	txOuts = append(txOuts, txOut)
 
 	tx := &Tx{
-		Id:        "",
+		ID:        "",
 		Timestamp: int(time.Now().Unix()),
 		TxIns:     txIns,
 		TxOuts:    txOuts,
@@ -104,4 +124,14 @@ func (m *mempool) AddTx(to string, amount int) error {
 	m.Txs = append(m.Txs, tx)
 
 	return nil
+}
+
+func (m *mempool) txToConfirm() []*Tx {
+	coinbase := makeCoinbaseTx("coco")
+	txs := m.Txs
+	txs = append(txs, coinbase)
+
+	m.Txs = nil
+
+	return txs
 }
