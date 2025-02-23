@@ -48,9 +48,13 @@ type UTxOut struct {
 func isOnMempool(uTxOut *UTxOut) bool {
 	exists := false
 
+Outer:
 	for _, tx := range Mempool.Txs {
 		for _, input := range tx.TxIns {
-			exists = input.TxID == uTxOut.TxID && input.Index == uTxOut.Index
+			if input.TxID == uTxOut.TxID && input.Index == uTxOut.Index {
+				exists = true
+				break Outer
+			}
 		}
 	}
 
